@@ -41,6 +41,14 @@ object VisitorData {
     fun getById(visitorId: Int): Visitor? = visitors.find { it.visitorId == visitorId }
     fun byResident(residentId: Int): List<Visitor> =
         visitors.filter { it.residentId == residentId }.sortedByDescending { it.validFrom }
+    // passes whose valid window touches the given day, earliest first -- a 10 PM to 2 AM pass
+    // shows on both days
+    fun visitorsOn(day: Long): List<Visitor> {
+        val dayStart = startOfDay(day)
+        val dayEnd = addDays(dayStart, 1)
+        return visitors.filter { it.validFrom < dayEnd && it.validUntil > dayStart }.sortedBy { it.validFrom }
+    }
+
     fun logFor(visitorId: Int): VisitLog? = visitLogs.find { it.visitorId == visitorId }
     fun activeVisits(): List<VisitLog> = visitLogs.filter { it.exitTime == null }.sortedByDescending { it.entryTime }
     fun hasVisitorInside(residentId: Int): Boolean =

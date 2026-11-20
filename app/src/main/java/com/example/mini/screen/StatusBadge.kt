@@ -20,6 +20,8 @@ import com.example.mini.model.EmergencyStatus
 import com.example.mini.model.PassStatus
 import com.example.mini.model.RegistrationStatus
 import com.example.mini.model.RequestStatus
+import com.example.mini.ui.theme.AlertOrange
+import com.example.mini.ui.theme.OnAlertOrange
 
 @Composable
 fun StatusBadge(label: String, container: Color, onContainer: Color) {
@@ -40,7 +42,7 @@ fun PassStatusBadge(status: PassStatus) {
         PassStatus.VALID -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
         PassStatus.USED -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
         PassStatus.EXPIRED -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
-        PassStatus.CANCELLED -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        PassStatus.CANCELLED -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
     }
     StatusBadge(status.label, container, onContainer)
 }
@@ -50,7 +52,7 @@ fun RegistrationStatusBadge(status: RegistrationStatus) {
     val (container, onContainer) = when (status) {
         RegistrationStatus.PENDING -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
         RegistrationStatus.APPROVED -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        RegistrationStatus.REJECTED -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        RegistrationStatus.REJECTED -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
     }
     StatusBadge(status.label, container, onContainer)
 }
@@ -69,10 +71,10 @@ fun RequestStatusBadge(status: RequestStatus) {
 @Composable
 fun EmergencyStatusBadge(status: EmergencyStatus) {
     val (container, onContainer) = when (status) {
-        EmergencyStatus.REPORTED -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
+        EmergencyStatus.REPORTED -> AlertOrange to OnAlertOrange
         EmergencyStatus.ACKNOWLEDGED -> MaterialTheme.colorScheme.tertiaryContainer to MaterialTheme.colorScheme.onTertiaryContainer
         EmergencyStatus.RESOLVED -> MaterialTheme.colorScheme.secondaryContainer to MaterialTheme.colorScheme.onSecondaryContainer
-        EmergencyStatus.CANCELLED -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
+        EmergencyStatus.CANCELLED -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
     }
     StatusBadge(status.label, container, onContainer)
 }

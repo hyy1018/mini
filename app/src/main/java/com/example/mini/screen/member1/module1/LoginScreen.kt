@@ -1,5 +1,6 @@
 // #member1
 // Login gate: pick Resident / Staff / Security, then sign in with username and password.
+// (Visitors are not app users -- residents register them and send the QR pass.)
 package com.example.mini.screen.member1.module1
 
 import androidx.compose.foundation.background
@@ -14,21 +15,17 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Apartment
-import androidx.compose.material.icons.filled.ConfirmationNumber
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
@@ -142,7 +139,7 @@ fun LoginScreen(navController: NavHostController) {
                     OutlinedTextField(
                         value = username,
                         onValueChange = { username = it; errorMessage = null },
-                        label = { Text("${selectedRole.label} Username") },
+                        label = { Text("${selectedRole.label} User ID") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -169,7 +166,7 @@ fun LoginScreen(navController: NavHostController) {
                     Button(
                         onClick = {
                             if (username.isBlank() || password.isEmpty()) {
-                                errorMessage = "Enter your username and password"
+                                errorMessage = "Enter your User ID and password"
                                 return@Button
                             }
                             val result = ResidentData.checkLogin(username.trim(), password, selectedRole)
@@ -207,33 +204,6 @@ fun LoginScreen(navController: NavHostController) {
                 }
             }
 
-            // --- Visitor entry, kept apart from the login card ---
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                HorizontalDivider(modifier = Modifier.weight(1f))
-                Text(
-                    "or",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-                HorizontalDivider(modifier = Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(16.dp))
-            OutlinedButton(
-                onClick = { navController.safeNavigate("visitor") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-            ) {
-                Icon(Icons.Filled.ConfirmationNumber, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("I'm a Visitor")
-            }
             Spacer(Modifier.height(24.dp))
         }
     }

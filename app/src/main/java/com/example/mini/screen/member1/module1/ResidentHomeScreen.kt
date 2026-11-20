@@ -19,7 +19,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.Campaign
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Sos
@@ -44,13 +44,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import com.example.mini.nav.safeNavigate
+import com.example.mini.data.CommunityData
 import com.example.mini.data.EngagementData
 import com.example.mini.data.MainHubData
 import com.example.mini.data.NotificationData
 import com.example.mini.data.ResidentData
 import com.example.mini.data.UserSession
-import com.example.mini.model.MainHubItem
+import com.example.mini.screen.HomeShortcut
+import com.example.mini.screen.IconGridSection
 import com.example.mini.screen.ResidentBottomBar
+import com.example.mini.screen.UserAvatar
 import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -69,12 +72,10 @@ fun ResidentHomeScreen(navController: NavHostController) {
         topBar = {
             TopAppBar(
                 title = { Text("Home") },
-                navigationIcon = {
-                    IconButton(onClick = { backToLogin(navController) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to login")
-                    }
-                },
-                actions = { NotificationBell(navController) }
+                actions = {
+                    ChatButton(navController)
+                    NotificationBell(navController)
+                }
             )
         },
         bottomBar = { ResidentBottomBar(navController) },
@@ -104,42 +105,44 @@ fun ResidentHomeScreen(navController: NavHostController) {
                 shape = RoundedCornerShape(20.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
             ) {
-                Column(modifier = Modifier.padding(20.dp)) {
-                    Text(
-                        "$greeting,",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Text(
-                        user?.name ?: "",
-                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                    Spacer(Modifier.height(4.dp))
-                    Text(
-                        resident?.let { ResidentData.unitLabel(it.residentId) } ?: "Welcome back to your community",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
-
-            // --- Service icon grid (4 per row) ---
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                Text("Services", style = MaterialTheme.typography.titleMedium)
-                // chunked rows instead of LazyVerticalGrid, since a lazy grid can't sit inside a scrolling Column
-                MainHubData.services.chunked(4).forEach { rowItems ->
-                    Row(modifier = Modifier.fillMaxWidth()) {
-                        rowItems.forEach { item ->
-                            ServiceTile(
-                                item = item,
-                                onClick = { navController.safeNavigate(item.route) },
-                                modifier = Modifier.weight(1f)
-                            )
-                        }
+                Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            "$greeting,",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Text(
+                            user?.name ?: "",
+                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            resident?.let { ResidentData.unitLabel(it.residentId) } ?: "Welcome back to your community",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    }
+                    user?.let {
+                        UserAvatar(
+                            it.userId,
+                            size = 56.dp,
+                            container = MaterialTheme.colorScheme.onPrimary,
+                            content = MaterialTheme.colorScheme.primary
+                        )
                     }
                 }
             }
+
+            // --- Service icon grid (4 per row), shared with the Staff / Security homes ---
+
+            IconGridSection(
+                "Services",
+                MainHubData.services.map { item ->
+                    HomeShortcut(item.title, item.icon, item.route)
+                }
+            ) { route -> navController.safeNavigate(route) }
 
             // --- Latest announcement (Module 3) ---
             EngagementData.latestAnnouncement()?.let { latest ->
@@ -179,36 +182,6 @@ fun ResidentHomeScreen(navController: NavHostController) {
     }
 }
 
-@Composable
-private fun ServiceTile(item: MainHubItem, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .clickable(onClick = onClick)
-            .padding(vertical = 8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Box(
-            modifier = Modifier
-                .size(52.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = item.icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-        Spacer(Modifier.height(6.dp))
-        Text(
-            item.title,
-            style = MaterialTheme.typography.labelMedium,
-            textAlign = TextAlign.Center
-        )
-    }
-}
 
 // Bell with an unread count, shown on every role's home page; opens the notification list (Module 3)
 @Composable
@@ -221,6 +194,17 @@ fun NotificationBell(navController: NavHostController) {
             }
         } else {
             Icon(Icons.Filled.Notifications, contentDescription = "Notifications")
+        }
+    }
+}
+
+// Chat icon with the unread message count, top right of the Resident home; opens Messages (Module 6)
+@Composable
+fun ChatButton(navController: NavHostController) {
+    val unread = UserSession.currentUserId?.let { CommunityData.totalUnread(it) } ?: 0
+    IconButton(onClick = { navController.safeNavigate("messages") }) {
+        BadgedBox(badge = { if (unread > 0) Badge { Text("$unread") } }) {
+            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Messages")
         }
     }
 }

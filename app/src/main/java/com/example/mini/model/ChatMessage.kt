@@ -1,7 +1,6 @@
 // #member3
-// One message between a resident and management (report 3NF: ChatMessage).
-// Residents write to the shared management inbox (receiverUserId = CommunityData.MANAGEMENT_INBOX),
-// so any staff member can answer.
+// One message from one account to another (report 3NF: ChatMessage).
+// Any two accounts can chat: resident, management or security.
 package com.example.mini.model
 
 data class ChatMessage(

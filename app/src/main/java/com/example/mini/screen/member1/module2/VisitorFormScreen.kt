@@ -199,6 +199,7 @@ fun VisitorFormScreen(visitorId: Int, navController: NavHostController) {
                     if (!navController.isCurrentScreenResumed()) return@Button
                     errorMessage = when {
                         name.isBlank() -> "Please enter the visitor's name"
+                        !InputRules.isValidName(name) -> InputRules.NAME_MESSAGE
                         !InputRules.isValidPhone(phone) -> InputRules.PHONE_MESSAGE
                         validUntil <= System.currentTimeMillis() -> "This time window has already passed"
                         else -> null

@@ -13,6 +13,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.mini.data.UserSession
 import com.example.mini.screen.RESIDENT_HOME_ROUTE
+import com.example.mini.screen.member1.module1.AccountScreen
+import com.example.mini.screen.member1.module1.AddStaffAccountScreen
+import com.example.mini.screen.member1.module1.StaffAccountsScreen
 import com.example.mini.screen.member1.module1.EditResidentScreen
 import com.example.mini.screen.member1.module1.LoginScreen
 import com.example.mini.screen.member1.module1.RegisterScreen
@@ -28,7 +31,6 @@ import com.example.mini.screen.member1.module2.VisitorExitScreen
 import com.example.mini.screen.member1.module2.VisitorFormScreen
 import com.example.mini.screen.member1.module2.VisitorPassScreen
 import com.example.mini.screen.member1.module2.VisitorRecordsScreen
-import com.example.mini.screen.member1.module2.VisitorScreen
 import com.example.mini.screen.member1.module2.VisitorSecurityScreen
 import com.example.mini.screen.member2.module3.AnnouncementDetailScreen
 import com.example.mini.screen.member2.module3.AnnouncementFormScreen
@@ -53,12 +55,13 @@ import com.example.mini.screen.member3.module6.EmergencyAlertsScreen
 import com.example.mini.screen.member3.module6.EmergencyContactFormScreen
 import com.example.mini.screen.member3.module6.EmergencyContactsScreen
 import com.example.mini.screen.member3.module6.EmergencySosScreen
+import com.example.mini.screen.member3.module6.NewChatScreen
 import com.example.mini.screen.member3.module6.NewPostScreen
 import com.example.mini.screen.member3.module6.PostDetailScreen
 import com.example.mini.screen.member3.module6.PostReportsScreen
 
 // screens that work without being logged in
-private val publicRoutes = setOf("login", "register", "visitor")
+private val publicRoutes = setOf("login", "register")
 
 @Composable
 fun AppNavGraph(navController: NavHostController = rememberNavController()) {
@@ -78,12 +81,16 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         startDestination = "login"
     ) {
         composable("login") { LoginScreen(navController) }
-        composable("visitor") { VisitorScreen(navController) }
 
         // One home per role
         composable(RESIDENT_HOME_ROUTE) { ResidentHomeScreen(navController) }
         composable("staff_home") { StaffHomeScreen(navController) }
         composable("security_home") { SecurityHomeScreen(navController) }
+        // Staff / Security "Me" page (residents use the Me tab)
+        composable("account") { AccountScreen(navController) }
+        // management creates and manages Staff / Security accounts
+        composable("staff_accounts") { StaffAccountsScreen(navController) }
+        composable("add_account") { AddStaffAccountScreen(navController) }
 
         // ---------- Member 1 -- Module 1: Resident & Household ----------
         composable("register") { RegisterScreen(navController) }
@@ -228,17 +235,15 @@ fun AppNavGraph(navController: NavHostController = rememberNavController()) {
         ) { backStackEntry ->
             PostDetailScreen(postId = backStackEntry.arguments?.getInt("id") ?: -1, navController = navController)
         }
-        // resident's own chat with management (Home "Chat" icon)
-        composable("resident_chat") {
-            UserSession.currentUserId?.let { ChatThreadScreen(residentUserId = it, navController = navController) }
-        }
+        // one-to-one chat, shared by every role
+        composable("messages") { ChatInboxScreen(navController) }
+        composable("new_chat") { NewChatScreen(navController) }
         composable(
-            route = "chat/{residentUserId}",
-            arguments = listOf(navArgument("residentUserId") { type = NavType.IntType })
+            route = "chat/{partnerUserId}",
+            arguments = listOf(navArgument("partnerUserId") { type = NavType.IntType })
         ) { backStackEntry ->
-            ChatThreadScreen(residentUserId = backStackEntry.arguments?.getInt("residentUserId") ?: -1, navController = navController)
+            ChatThreadScreen(partnerUserId = backStackEntry.arguments?.getInt("partnerUserId") ?: -1, navController = navController)
         }
-        composable("chat_inbox") { ChatInboxScreen(navController) }
         composable("post_reports") { PostReportsScreen(navController) }
         composable("emergency_sos") { EmergencySosScreen(navController) }
         composable("emergency_alerts") { EmergencyAlertsScreen(navController) }

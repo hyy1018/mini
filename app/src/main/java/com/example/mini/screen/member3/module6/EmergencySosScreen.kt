@@ -32,7 +32,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -50,6 +52,7 @@ import com.example.mini.model.EmergencyStatus
 import com.example.mini.screen.BackTopBar
 import com.example.mini.screen.EmergencyStatusBadge
 import com.example.mini.screen.InfoRow
+import kotlinx.coroutines.delay
 
 private fun iconFor(type: String): ImageVector = when (type) {
     "Fire" -> Icons.Filled.LocalFireDepartment
@@ -65,6 +68,16 @@ fun EmergencySosScreen(navController: NavHostController) {
     // shows the most recent open alert, so reopening the page shows its status instead of the buttons
     val openAlert = CommunityData.emergenciesOfResident(resident.residentId)
         .firstOrNull { it.reportStatus == EmergencyStatus.REPORTED || it.reportStatus == EmergencyStatus.ACKNOWLEDGED }
+
+    // re-checked every 15 s while blocked, so the buttons come back by themselves once the 5 minutes pass
+    var tick by remember { mutableIntStateOf(0) }
+    val limitReached = tick >= 0 && CommunityData.isAlertLimitReached(resident.residentId)
+    LaunchedEffect(limitReached, tick) {
+        if (limitReached) {
+            delay(15_000)
+            tick++
+        }
+    }
 
     Scaffold(topBar = { BackTopBar("Emergency SOS", navController) }) { innerPadding ->
         Column(
@@ -118,6 +131,31 @@ fun EmergencySosScreen(navController: NavHostController) {
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            } else if (limitReached) {
+                // --- Blocked: too many alerts in 5 minutes ---
+                // a real emergency must never be stuck here, so the call buttons are right on this page
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(Icons.Filled.Warning, contentDescription = null, modifier = Modifier.size(40.dp))
+                        Spacer(Modifier.height(8.dp))
+                        Text("Too many alerts", style = MaterialTheme.typography.titleLarge)
+                        Text(
+                            "You have sent ${CommunityData.MAX_ALERTS} alerts in the last 5 minutes. " +
+                                "If this is a real emergency, call for help now.",
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                Text("Call for help", style = MaterialTheme.typography.titleMedium)
+                CommunityData.contacts
+                    .filter { it.contactType == "Police" || it.contactType == "Security" || it.contactType == "Ambulance" }
+                    .forEach { contact -> EmergencyContactRow(contact) }
             } else {
                 // --- Send an alert ---
                 Text(
@@ -159,6 +197,11 @@ fun EmergencySosScreen(navController: NavHostController) {
                         }
                     }
                 }
+                Text(
+                    "To prevent misuse, up to ${CommunityData.MAX_ALERTS} alerts can be sent within 5 minutes.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }

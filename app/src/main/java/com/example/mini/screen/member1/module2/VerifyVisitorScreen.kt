@@ -154,8 +154,8 @@ fun VerifyVisitorScreen(navController: NavHostController) {
 
 @Composable
 private fun VerifyResultCard(result: VerifyResult) {
-    val container = if (result.success) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.errorContainer
-    val onContainer = if (result.success) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onErrorContainer
+    val container = if (result.success) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.error
+    val onContainer = if (result.success) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onError
 
     Card(
         modifier = Modifier.fillMaxWidth(),

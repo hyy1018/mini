@@ -15,9 +15,6 @@ import com.example.mini.model.PostReport
 import com.example.mini.model.UserRole
 
 object CommunityData {
-    // residents send to this shared inbox instead of one staff member, so any staff can reply
-    const val MANAGEMENT_INBOX = 0
-
     val reportReasons = listOf("Spam", "Offensive or abusive", "False information", "Not community related", "Other")
     val emergencyTypes = listOf("Fire", "Medical / Accident", "Security Threat", "Other")
     val contactTypes = listOf("Police", "Ambulance", "Fire", "Security", "Management", "Other")
@@ -40,7 +37,14 @@ object CommunityData {
         )
         likes.add(PostLike(2, 3))
         comments.add(Comment(1, 1, 1, null, "I can join after 7 PM.", createdAt = now - 2 * HOUR_MILLIS))
-        messages.add(ChatMessage(1, 3, MANAGEMENT_INBOX, "Hi, can I register two visitors for the same day?", now - 5 * HOUR_MILLIS))
+        // sample chats: resident1 -> staff1 (answered), resident1 -> guard1
+        messages.addAll(
+            listOf(
+                ChatMessage(1, 3, 1, "Hi, can I register two visitors for the same day?", now - 5 * HOUR_MILLIS, isRead = true),
+                ChatMessage(2, 1, 3, "Yes, just create one pass for each visitor.", now - 4 * HOUR_MILLIS),
+                ChatMessage(3, 3, 2, "My parcel will arrive at 3 PM, please let the rider in.", now - HOUR_MILLIS)
+            )
+        )
         contacts.addAll(
             listOf(
                 EmergencyContact(1, "Police / Ambulance", "999", "Police"),
@@ -120,43 +124,52 @@ object CommunityData {
         }
     }
 
-    // ---------- Chat (resident <-> management) ----------
-    fun conversation(residentUserId: Int): List<ChatMessage> = messages.filter {
-        (it.senderUserId == residentUserId && it.receiverUserId == MANAGEMENT_INBOX) || it.receiverUserId == residentUserId
+    // ---------- Chat (one-to-one, between any two accounts) ----------
+    // every message between me and one partner, oldest first
+    fun conversation(myUserId: Int, partnerUserId: Int): List<ChatMessage> = messages.filter {
+        (it.senderUserId == myUserId && it.receiverUserId == partnerUserId) ||
+            (it.senderUserId == partnerUserId && it.receiverUserId == myUserId)
     }.sortedBy { it.sentAt }
 
-    fun sendToManagement(residentUserId: Int, text: String) {
+    fun getMessage(id: Int): ChatMessage? = messages.find { it.messageId == id }
+
+    fun sendMessage(fromUserId: Int, toUserId: Int, text: String) {
         val newId = (messages.maxOfOrNull { it.messageId } ?: 0) + 1
-        messages.add(ChatMessage(newId, residentUserId, MANAGEMENT_INBOX, text))
+        messages.add(ChatMessage(newId, fromUserId, toUserId, text))
+        val senderName = ResidentData.getUser(fromUserId)?.name ?: "Someone"
+        NotificationData.notify(toUserId, "Chat", "New message from $senderName")
     }
 
-    fun replyToResident(staffId: Int, residentUserId: Int, text: String) {
-        val newId = (messages.maxOfOrNull { it.messageId } ?: 0) + 1
-        messages.add(ChatMessage(newId, staffId, residentUserId, text))
-        NotificationData.notify(residentUserId, "Chat", "Management replied to your enquiry")
+    // only the sender may edit or delete -- the screen only offers it on your own messages,
+    // and this check stops anything else from changing someone else's message
+    fun editMessage(messageId: Int, byUserId: Int, newText: String) {
+        val index = messages.indexOfFirst { it.messageId == messageId && it.senderUserId == byUserId }
+        if (index != -1) messages[index] = messages[index].copy(messageText = newText)
     }
 
-    // residents who have messaged management, most recent conversation first
-    fun conversationResidents(): List<Int> = messages
-        .filter { it.receiverUserId == MANAGEMENT_INBOX }
-        .map { it.senderUserId }
+    // one shared row per message, so deleting removes it for both people
+    fun deleteMessage(messageId: Int, byUserId: Int) {
+        messages.removeAll { it.messageId == messageId && it.senderUserId == byUserId }
+    }
+
+    // everyone I've exchanged messages with, most recent conversation first
+    fun conversationPartners(myUserId: Int): List<Int> = messages
+        .filter { it.senderUserId == myUserId || it.receiverUserId == myUserId }
+        .map { if (it.senderUserId == myUserId) it.receiverUserId else it.senderUserId }
         .distinct()
-        .sortedByDescending { userId -> conversation(userId).lastOrNull()?.sentAt ?: 0L }
+        .sortedByDescending { partner -> conversation(myUserId, partner).lastOrNull()?.sentAt ?: 0L }
 
-    fun unreadForManagement(residentUserId: Int): Int =
-        messages.count { it.senderUserId == residentUserId && it.receiverUserId == MANAGEMENT_INBOX && !it.isRead }
+    fun unreadFrom(partnerUserId: Int, myUserId: Int): Int =
+        messages.count { it.senderUserId == partnerUserId && it.receiverUserId == myUserId && !it.isRead }
 
-    fun totalUnreadForManagement(): Int = messages.count { it.receiverUserId == MANAGEMENT_INBOX && !it.isRead }
+    fun totalUnread(myUserId: Int): Int = messages.count { it.receiverUserId == myUserId && !it.isRead }
 
-    // marks the other side's messages as read when a conversation is opened
-    fun markConversationRead(residentUserId: Int, byManagement: Boolean) {
+    // opening a conversation marks the partner's messages to me as read
+    fun markConversationRead(myUserId: Int, partnerUserId: Int) {
         messages.forEachIndexed { index, m ->
-            val incoming = if (byManagement) {
-                m.senderUserId == residentUserId && m.receiverUserId == MANAGEMENT_INBOX
-            } else {
-                m.receiverUserId == residentUserId
+            if (m.senderUserId == partnerUserId && m.receiverUserId == myUserId && !m.isRead) {
+                messages[index] = m.copy(isRead = true)
             }
-            if (incoming && !m.isRead) messages[index] = m.copy(isRead = true)
         }
     }
 
@@ -186,11 +199,25 @@ object CommunityData {
         .filter { it.reportStatus == EmergencyStatus.REPORTED || it.reportStatus == EmergencyStatus.ACKNOWLEDGED }
         .sortedByDescending { it.reportedAt }
 
+    // anti-abuse: at most MAX_ALERTS per resident within ALERT_WINDOW_MILLIS.
+    // Cancelled alerts count too, so "send, cancel, send again" can't be repeated endlessly.
+    const val MAX_ALERTS = 2
+    const val ALERT_WINDOW_MILLIS = 5 * 60 * 1000L
+
+    fun recentAlertCount(residentId: Int): Int {
+        val since = System.currentTimeMillis() - ALERT_WINDOW_MILLIS
+        return emergencies.count { it.residentId == residentId && it.reportedAt >= since }
+    }
+
+    fun isAlertLimitReached(residentId: Int): Boolean = recentAlertCount(residentId) >= MAX_ALERTS
+
     // one tap from the resident: the unit comes from their household record, and every
-    // staff and security account is notified straight away
-    fun sendAlert(residentId: Int, type: String, description: String): EmergencyReport {
+    // staff and security account is notified straight away.
+    // Returns null when the resident has hit the 2-alerts-in-5-minutes limit.
+    fun sendAlert(residentId: Int, type: String, description: String): EmergencyReport? {
         // a panicked double tap must not raise two alerts -- reuse the one that's still open
         activeEmergencies().firstOrNull { it.residentId == residentId }?.let { return it }
+        if (isAlertLimitReached(residentId)) return null
         val newId = (emergencies.maxOfOrNull { it.emergencyId } ?: 0) + 1
         val report = EmergencyReport(newId, residentId, type, description)
         emergencies.add(report)

@@ -15,12 +15,15 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.PriorityHigh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Card
@@ -231,7 +234,7 @@ private fun EventCard(event: Event, onClick: () -> Unit) {
 fun EventStatusBadge(status: String) {
     val (container, onContainer) = when (status) {
         "Upcoming" -> MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer
-        "Cancelled" -> MaterialTheme.colorScheme.errorContainer to MaterialTheme.colorScheme.onErrorContainer
+        "Cancelled" -> MaterialTheme.colorScheme.error to MaterialTheme.colorScheme.onError
         else -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
     StatusBadge(status, container, onContainer)
@@ -301,10 +304,25 @@ private fun InfoCard(info: CommunityInfo, isStaff: Boolean, onEdit: () -> Unit) 
                 if (isStaff) {
                     IconButton(onClick = onEdit) { Icon(Icons.Filled.Edit, contentDescription = "Edit") }
                 }
+                // arrow hints that the card opens
+                Icon(
+                    if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+                    contentDescription = if (expanded) "Collapse" else "Expand"
+                )
             }
             if (expanded) {
                 Spacer(Modifier.height(6.dp))
-                Text(info.content, style = MaterialTheme.typography.bodyMedium)
+                // one bullet per line; leading "-" or "•" typed by staff is dropped so it isn't doubled
+                info.content.lines()
+                    .map { it.trim().trimStart('-', '•', '*').trim() }
+                    .filter { it.isNotBlank() }
+                    .forEach { point ->
+                        Row(modifier = Modifier.padding(vertical = 2.dp)) {
+                            Text("•", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Text(point, style = MaterialTheme.typography.bodyMedium)
+                        }
+                    }
             }
         }
     }

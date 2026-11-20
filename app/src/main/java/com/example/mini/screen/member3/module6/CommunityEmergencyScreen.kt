@@ -7,6 +7,7 @@ import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.net.Uri
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -37,6 +38,7 @@ import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -69,24 +71,26 @@ import com.example.mini.screen.EmergencyStatusBadge
 import com.example.mini.screen.EmptyState
 import com.example.mini.screen.LocalPhoto
 import com.example.mini.screen.ResidentBottomBar
+import com.example.mini.screen.StatusBadge
+import com.example.mini.screen.UserAvatar
 
 @Composable
 fun CommunityEmergencyScreen(navController: NavHostController) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
     val userId = UserSession.currentUserId ?: return
-    // replies from management the resident hasn't opened yet
-    val unreadReplies = CommunityData.conversation(userId).count { it.receiverUserId == userId && !it.isRead }
+    // chat messages the resident hasn't opened yet, from anyone
+    val unreadMessages = CommunityData.totalUnread(userId)
 
     Scaffold(
         topBar = {
             BackTopBar("Community", navController) {
-                IconButton(onClick = { navController.safeNavigate("chat/$userId") }) {
-                    if (unreadReplies > 0) {
-                        BadgedBox(badge = { Badge { Text("$unreadReplies") } }) {
-                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat with management")
+                IconButton(onClick = { navController.safeNavigate("messages") }) {
+                    if (unreadMessages > 0) {
+                        BadgedBox(badge = { Badge { Text("$unreadMessages") } }) {
+                            Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Messages")
                         }
                     } else {
-                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat with management")
+                        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Messages")
                     }
                 }
             }
@@ -144,11 +148,19 @@ private fun FeedTab(userId: Int, navController: NavHostController) {
 @Composable
 fun PostCard(post: Post, userId: Int, onClick: (() -> Unit)?) {
     val liked = CommunityData.isLiked(post.postId, userId)
+    // management posts get a blue border and tint so residents can tell official notices apart
+    val fromManagement = isManagement(post.userId)
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier),
+        colors = if (fromManagement) {
+            CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f))
+        } else {
+            CardDefaults.cardColors()
+        },
+        border = if (fromManagement) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             PostAuthorRow(post.userId, post.createdAt)
@@ -177,28 +189,28 @@ fun PostCard(post: Post, userId: Int, onClick: (() -> Unit)?) {
     }
 }
 
-// avatar initial + name (+ unit for residents, "Management" for staff) + time
+fun isManagement(userId: Int): Boolean = ResidentData.getUser(userId)?.role == UserRole.STAFF
+
+// avatar initial + name (+ MANAGEMENT badge for staff, unit for residents) + time
 @Composable
 fun PostAuthorRow(userId: Int, time: Long) {
     val user = ResidentData.getUser(userId)
-    val subtitle = when (user?.role) {
-        UserRole.RESIDENT -> ResidentData.residentOfUser(userId)?.let { ResidentData.unitLabel(it.residentId) } ?: ""
-        null -> ""
-        else -> "Management"
+    val subtitle = if (user?.role == UserRole.RESIDENT) {
+        ResidentData.residentOfUser(userId)?.let { ResidentData.unitLabel(it.residentId) } ?: ""
+    } else {
+        ""
     }
     Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Text((user?.name ?: "?").take(1).uppercase(), color = MaterialTheme.colorScheme.onPrimaryContainer)
-        }
+        UserAvatar(userId, size = 36.dp)
         Spacer(Modifier.width(10.dp))
         Column {
-            Text(user?.name ?: "Unknown", style = MaterialTheme.typography.titleSmall)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(user?.name ?: "Unknown", style = MaterialTheme.typography.titleSmall)
+                if (user?.role == UserRole.STAFF) {
+                    Spacer(Modifier.width(6.dp))
+                    StatusBadge("Management", MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.onPrimary)
+                }
+            }
             Text(
                 listOf(subtitle, formatDateTime(time)).filter { it.isNotBlank() }.joinToString(" · "),
                 style = MaterialTheme.typography.labelSmall,

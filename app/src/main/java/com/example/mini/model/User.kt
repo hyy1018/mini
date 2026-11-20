@@ -17,5 +17,7 @@ data class User(
     val password: String,
     val role: UserRole,
     val accountStatus: String = "Active",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    // path of the profile photo copied into app storage; null = show the name initial
+    val avatarPath: String? = null
 )

@@ -44,6 +44,7 @@ import com.example.mini.data.UserSession
 import com.example.mini.screen.InfoRow
 import com.example.mini.screen.RegistrationStatusBadge
 import com.example.mini.screen.ResidentBottomBar
+import com.example.mini.screen.UserAvatar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -82,24 +83,17 @@ fun ResidentHouseholdScreen(navController: NavHostController) {
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            user.name.take(1).uppercase(),
-                            style = MaterialTheme.typography.titleLarge,
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
-                    }
+                    UserAvatar(
+                        user.userId,
+                        size = 64.dp,
+                        container = MaterialTheme.colorScheme.primary,
+                        content = MaterialTheme.colorScheme.onPrimary
+                    )
                     Spacer(Modifier.width(16.dp))
                     Column(modifier = Modifier.weight(1f)) {
                         Text(user.name, style = MaterialTheme.typography.titleMedium)
                         Text(
-                            "@${user.username} · ${resident.residentType}",
+                            "ID: ${user.username} · ${resident.residentType}",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -126,7 +120,6 @@ fun ResidentHouseholdScreen(navController: NavHostController) {
                     Spacer(Modifier.size(8.dp))
                     InfoRow("Unit", household?.unitNo ?: "-")
                     InfoRow("Block", household?.blockName ?: "-")
-                    InfoRow("Address", household?.address ?: "-")
 
                     Spacer(Modifier.size(8.dp))
                     HorizontalDivider()
@@ -157,7 +150,7 @@ fun ResidentHouseholdScreen(navController: NavHostController) {
                         }
                     }
                     Text(
-                        "Family members join this household by registering with the same block and unit number.",
+                        "Family members join this household by picking the same block, floor and unit when they register.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -172,14 +165,7 @@ fun ResidentHouseholdScreen(navController: NavHostController) {
                 Spacer(Modifier.width(8.dp))
                 Text("Edit Profile")
             }
-            OutlinedButton(
-                onClick = { backToLogin(navController) },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Logout, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Log Out")
-            }
+            LogoutButton(navController)
         }
     }
 }

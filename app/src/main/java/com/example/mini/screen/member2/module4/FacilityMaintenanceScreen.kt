@@ -52,6 +52,8 @@ import com.example.mini.screen.BackTopBar
 import com.example.mini.screen.EmptyState
 import com.example.mini.screen.RequestStatusBadge
 import com.example.mini.screen.StatusBadge
+import com.example.mini.ui.theme.MaintenanceAmber
+import com.example.mini.ui.theme.OnMaintenanceAmber
 
 @Composable
 fun FacilityMaintenanceScreen(initialTab: Int, navController: NavHostController) {
@@ -122,7 +124,7 @@ private fun FacilitiesTab(isStaff: Boolean, navController: NavHostController) {
                         if (available) {
                             StatusBadge("Available", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
                         } else {
-                            StatusBadge("Maintenance", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
+                            StatusBadge("Maintenance", MaintenanceAmber, OnMaintenanceAmber)
                         }
                     }
                     Text(facility.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -176,8 +178,8 @@ private fun BookingsTab(isStaff: Boolean, navController: NavHostController) {
                         }
                         StatusBadge(
                             label,
-                            if (isGood) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            if (isGood) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                            if (isGood) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.error,
+                            if (isGood) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onError
                         )
                     }
                     Text(

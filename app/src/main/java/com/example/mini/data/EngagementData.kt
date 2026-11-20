@@ -43,14 +43,15 @@ object EngagementData {
                 "Multipurpose Hall", addDays(now, 7), 9, 13, 50
             )
         )
+        // content is stored one point per line; the Info tab shows each line as a bullet
         infos.addAll(
             listOf(
-                CommunityInfo(1, 1, "Community Rules", "Quiet Hours", "Please keep noise down between 10 PM and 7 AM."),
-                CommunityInfo(2, 1, "Community Rules", "Parking", "Park only in your allocated bay. Visitor cars use the visitor lots at Level 1."),
-                CommunityInfo(3, 1, "Facility Guidelines", "Swimming Pool Rules", "Open 7 AM - 10 PM. Proper swimwear only. Children under 12 must be accompanied."),
-                CommunityInfo(4, 1, "FAQ", "How do I register a visitor?", "Go to Visitors > Invite Visitor, fill in the details and send the QR pass to your visitor."),
-                CommunityInfo(5, 1, "FAQ", "How do I book the badminton court?", "Go to Booking, pick the court and a free time slot, then tap Book."),
-                CommunityInfo(6, 1, "Management Contact", "Management Office", "Ground floor, Block A. Mon-Fri 9 AM - 6 PM. Tel: 03-1234 5678.")
+                CommunityInfo(1, 1, "Community Rules", "Quiet Hours", "10 PM - 7 AM every day\nNo loud music or renovation work\nKeep corridor conversations low"),
+                CommunityInfo(2, 1, "Community Rules", "Parking", "Park only in your allocated bay\nVisitor cars use visitor lots at Level 1\nNo parking at fire lanes"),
+                CommunityInfo(3, 1, "Facility Guidelines", "Swimming Pool", "Open 7 AM - 10 PM\nProper swimwear only\nChildren under 12 must be with an adult\nNo food or glass bottles"),
+                CommunityInfo(4, 1, "FAQ", "How do I register a visitor?", "Open Visitors > Invite Visitor\nFill in visitor details and visit time\nSend the QR pass to your visitor\nShow the QR at the guardhouse"),
+                CommunityInfo(5, 1, "FAQ", "How do I book a facility?", "Open Booking and pick a facility\nChoose a date and a free time slot\nTap Book to confirm"),
+                CommunityInfo(6, 1, "Management Contact", "Management Office", "Ground floor, Block A\nMon - Fri, 9 AM - 6 PM\nTel: 03-1234 5678")
             )
         )
     }

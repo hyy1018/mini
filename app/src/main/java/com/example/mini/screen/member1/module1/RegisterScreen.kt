@@ -58,8 +58,8 @@ fun RegisterScreen(navController: NavHostController) {
     var confirmPassword by remember { mutableStateOf("") }
     var residentType by remember { mutableStateOf(ResidentData.residentTypes.first()) }
     var block by remember { mutableStateOf(ResidentData.blocks.first()) }
-    var unitNo by remember { mutableStateOf("") }
-    var address by remember { mutableStateOf("") }
+    var floor by remember { mutableStateOf(ResidentData.floors.first()) }
+    var unit by remember { mutableStateOf(ResidentData.unitsPerFloor.first()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showSuccess by remember { mutableStateOf(false) }
 
@@ -129,20 +129,30 @@ fun RegisterScreen(navController: NavHostController) {
                 onSelected = { block = it },
                 modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
-                value = unitNo,
-                onValueChange = { unitNo = it.take(20) },
-                label = { Text("Unit Number") },
-                placeholder = { Text("e.g. A-10-05") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = address,
-                onValueChange = { address = it.take(255) },
-                label = { Text("Address") },
-                minLines = 2,
-                modifier = Modifier.fillMaxWidth()
+            // floor and unit are picked, not typed, so everyone in the same unit matches exactly
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                DropdownField(
+                    label = "Floor",
+                    options = ResidentData.floors,
+                    selected = floor,
+                    onSelected = { floor = it },
+                    optionLabel = { "%02d".format(it) },
+                    modifier = Modifier.weight(1f)
+                )
+                DropdownField(
+                    label = "Unit",
+                    options = ResidentData.unitsPerFloor,
+                    selected = unit,
+                    onSelected = { unit = it },
+                    optionLabel = { "%02d".format(it) },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            Text(
+                "Your unit: ${ResidentData.unitNumber(block, floor, unit)}. " +
+                    "Family members joining your household pick the same unit.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.primary
             )
             Text("Resident Type", style = MaterialTheme.typography.titleSmall)
             Column {
@@ -170,8 +180,8 @@ fun RegisterScreen(navController: NavHostController) {
             OutlinedTextField(
                 value = username,
                 onValueChange = { username = it.trim() },
-                label = { Text("Username") },
-                supportingText = { Text("You will log in with this") },
+                label = { Text("User ID") },
+                supportingText = { Text("You will log in with this, e.g. alitan88 (not your full name)") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -194,16 +204,18 @@ fun RegisterScreen(navController: NavHostController) {
 
             Button(
                 onClick = {
-                    // a second tap after success would hit "username taken", so stop once submitted
+                    // a second tap after success would hit "User ID taken", so stop once submitted
                     if (showSuccess) return@Button
                     // checked in order, so the resident fixes one problem at a time
                     errorMessage = when {
-                        listOf(name, icNo, email, phone, unitNo, address, username, password).any { it.isBlank() } ->
+                        listOf(name, icNo, email, phone, username, password).any { it.isBlank() } ->
                             "Please fill in all the details"
+                        !InputRules.isValidName(name) -> InputRules.NAME_MESSAGE
                         !InputRules.isValidIc(icNo) -> InputRules.IC_MESSAGE
                         !InputRules.isValidEmail(email) -> InputRules.EMAIL_MESSAGE
                         !InputRules.isValidPhone(phone) -> InputRules.PHONE_MESSAGE
-                        ResidentData.isUsernameTaken(username) -> "This username is already taken"
+                        !InputRules.isValidUsername(username) -> InputRules.USERNAME_MESSAGE
+                        ResidentData.isUsernameTaken(username) -> "This User ID is already taken"
                         !InputRules.isValidPassword(password) -> InputRules.PASSWORD_MESSAGE
                         password != confirmPassword -> "Passwords do not match"
                         else -> null
@@ -218,8 +230,8 @@ fun RegisterScreen(navController: NavHostController) {
                             password = password,
                             residentType = residentType,
                             blockName = block,
-                            unitNo = unitNo.trim(),
-                            address = address.trim()
+                            floor = floor,
+                            unit = unit
                         )
                         showSuccess = true
                     }

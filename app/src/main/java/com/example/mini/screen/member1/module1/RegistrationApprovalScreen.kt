@@ -93,7 +93,7 @@ fun RegistrationApprovalScreen(navController: NavHostController) {
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(Modifier.height(8.dp))
-                            InfoRow("Username", user?.username ?: "-")
+                            InfoRow("User ID", user?.username ?: "-")
                             InfoRow("IC Number", resident.icNo)
                             InfoRow("Phone", user?.phoneNo ?: "-")
                             InfoRow("Email", user?.email ?: "-")

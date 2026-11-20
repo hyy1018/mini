@@ -84,6 +84,9 @@ fun InfoFormScreen(infoId: Int, navController: NavHostController) {
                 value = content,
                 onValueChange = { content = it.take(2000) },
                 label = { Text(if (infoType == "FAQ") "Answer" else "Details") },
+                // each line becomes one bullet point in the Info tab
+                supportingText = { Text("One point per line -- press Enter for a new point") },
+                placeholder = { Text("Open 7 AM - 10 PM\nProper swimwear only") },
                 minLines = 4,
                 modifier = Modifier.fillMaxWidth()
             )

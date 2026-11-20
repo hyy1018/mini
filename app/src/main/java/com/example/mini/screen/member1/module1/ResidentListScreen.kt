@@ -71,7 +71,7 @@ fun ResidentListScreen(navController: NavHostController) {
             OutlinedTextField(
                 value = query,
                 onValueChange = { query = it.take(100) },
-                label = { Text("Search name, username or unit") },
+                label = { Text("Search name, User ID or unit") },
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 singleLine = true,
                 modifier = Modifier

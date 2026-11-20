@@ -1,11 +1,10 @@
 // #member1
-// Staff (management) home page: one entry per management task across all six modules.
+// Staff (management) home page: icon grid grouped by category, same style as the Resident home.
+// A red banner appears on top whenever an emergency alert is still open.
 package com.example.mini.screen.member1.module1
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -13,15 +12,14 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Badge
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Call
@@ -30,10 +28,9 @@ import androidx.compose.material.icons.filled.EventAvailable
 import androidx.compose.material.icons.filled.Feedback
 import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.HowToReg
+import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Sos
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,35 +43,35 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
-import com.example.mini.nav.safeNavigate
 import com.example.mini.data.CommunityData
 import com.example.mini.data.ComplaintData
 import com.example.mini.data.FacilityData
 import com.example.mini.data.ResidentData
 import com.example.mini.data.UserSession
 import com.example.mini.model.RequestStatus
+import com.example.mini.nav.safeNavigate
+import com.example.mini.screen.HomeShortcut
+import com.example.mini.screen.IconGridSection
+import com.example.mini.screen.UserAvatar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun StaffHomeScreen(navController: NavHostController) {
-    val pendingCount = ResidentData.pendingRegistrations().size
+    val myId = UserSession.currentUserId ?: -1
     val openEmergencies = CommunityData.activeEmergencies().size
+    val open: (String) -> Unit = { route -> navController.safeNavigate(route) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Management") },
-                navigationIcon = {
-                    IconButton(onClick = { backToLogin(navController) }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to login")
-                    }
-                },
-                actions = { NotificationBell(navController) }
+                actions = {
+                    NotificationBell(navController)
+                    MeButton(navController)
+                }
             )
         }
     ) { innerPadding ->
@@ -84,188 +81,123 @@ fun StaffHomeScreen(navController: NavHostController) {
                 .padding(innerPadding)
                 .verticalScroll(rememberScrollState())
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            RoleGreeting(name = UserSession.currentUser?.name ?: "", role = "Management Staff")
+            RoleGreeting(userId = myId, role = "Management Staff")
 
-            // Module 6 -- open emergencies always come first
+            // an open emergency must not be just a small badge
             if (openEmergencies > 0) {
-                HomeActionCard(
-                    icon = Icons.Filled.Sos,
-                    title = "Emergency Alerts",
-                    subtitle = "$openEmergencies open alert(s) need attention",
-                    badgeCount = openEmergencies,
-                    onClick = { navController.safeNavigate("emergency_alerts") }
-                )
+                EmergencyBanner(openEmergencies) { open("emergency_alerts") }
             }
 
-            SectionLabel("Residents & Visitors")
-            // Module 1
-            HomeActionCard(
-                icon = Icons.Filled.HowToReg,
-                title = "Registration Approvals",
-                subtitle = "Approve or reject new resident registrations",
-                badgeCount = pendingCount,
-                onClick = { navController.safeNavigate("staff_registrations") }
+            // Module 1 & 2
+            IconGridSection(
+                "Residents & Visitors",
+                listOf(
+                    HomeShortcut("Approvals", Icons.Filled.HowToReg, "staff_registrations", ResidentData.pendingRegistrations().size),
+                    HomeShortcut("Residents", Icons.Filled.People, "staff_residents"),
+                    HomeShortcut("Visitors", Icons.Filled.Badge, "visitor_records"),
+                    HomeShortcut("Accounts", Icons.Filled.ManageAccounts, "staff_accounts")
+                ),
+                open
             )
-            HomeActionCard(
-                icon = Icons.Filled.People,
-                title = "Residents",
-                subtitle = "View, edit and remove resident records",
-                onClick = { navController.safeNavigate("staff_residents") }
+            // Module 3 & 6
+            IconGridSection(
+                "Community",
+                listOf(
+                    HomeShortcut("News & Events", Icons.Filled.Campaign, "community_engagement?tab=0"),
+                    HomeShortcut("Messages", Icons.AutoMirrored.Filled.Chat, "messages", CommunityData.totalUnread(myId)),
+                    HomeShortcut("Reports", Icons.Filled.Flag, "post_reports", CommunityData.pendingReports().size)
+                ),
+                open
             )
-            // Module 2
-            HomeActionCard(
-                icon = Icons.Filled.Badge,
-                title = "Visitor Records",
-                subtitle = "All visitor passes with entry and exit times",
-                onClick = { navController.safeNavigate("visitor_records") }
-            )
-
-            SectionLabel("Community")
-            // Module 3
-            HomeActionCard(
-                icon = Icons.Filled.Campaign,
-                title = "Announcements & Events",
-                subtitle = "Publish notices, manage events, rules and FAQ",
-                onClick = { navController.safeNavigate("community_engagement?tab=0") }
+            // Module 4 & 5
+            IconGridSection(
+                "Facilities & Requests",
+                listOf(
+                    HomeShortcut("Facilities", Icons.Filled.EventAvailable, "facility_maintenance?tab=0"),
+                    HomeShortcut(
+                        "Repairs", Icons.Filled.Build, "facility_maintenance?tab=2",
+                        FacilityData.maintenanceRequests.count { it.requestStatus == RequestStatus.PENDING }
+                    ),
+                    HomeShortcut(
+                        "Complaints", Icons.Filled.Feedback, "complaint_feedback?tab=0",
+                        ComplaintData.complaints.count { it.complaintStatus == RequestStatus.PENDING }
+                    )
+                ),
+                open
             )
             // Module 6
-            HomeActionCard(
-                icon = Icons.AutoMirrored.Filled.Chat,
-                title = "Resident Enquiries",
-                subtitle = "Reply to residents' chat messages",
-                badgeCount = CommunityData.totalUnreadForManagement(),
-                onClick = { navController.safeNavigate("chat_inbox") }
-            )
-            HomeActionCard(
-                icon = Icons.Filled.Flag,
-                title = "Reported Posts",
-                subtitle = "Review posts reported by residents",
-                badgeCount = CommunityData.pendingReports().size,
-                onClick = { navController.safeNavigate("post_reports") }
-            )
-
-            SectionLabel("Facilities & Requests")
-            // Module 4
-            HomeActionCard(
-                icon = Icons.Filled.EventAvailable,
-                title = "Facilities & Bookings",
-                subtitle = "Manage facilities and see all bookings",
-                onClick = { navController.safeNavigate("facility_maintenance?tab=0") }
-            )
-            HomeActionCard(
-                icon = Icons.Filled.Build,
-                title = "Maintenance Requests",
-                subtitle = "Assign technicians and update progress",
-                badgeCount = FacilityData.maintenanceRequests.count { it.requestStatus == RequestStatus.PENDING },
-                onClick = { navController.safeNavigate("facility_maintenance?tab=2") }
-            )
-            // Module 5
-            HomeActionCard(
-                icon = Icons.Filled.Feedback,
-                title = "Complaints & Feedback",
-                subtitle = "Respond to complaints, read feedback",
-                badgeCount = ComplaintData.complaints.count { it.complaintStatus == RequestStatus.PENDING },
-                onClick = { navController.safeNavigate("complaint_feedback?tab=0") }
-            )
-
-            SectionLabel("Emergency")
-            // Module 6
-            HomeActionCard(
-                icon = Icons.Filled.Sos,
-                title = "Emergency Alerts",
-                subtitle = "Open alerts and history",
-                badgeCount = openEmergencies,
-                onClick = { navController.safeNavigate("emergency_alerts") }
-            )
-            HomeActionCard(
-                icon = Icons.Filled.Call,
-                title = "Emergency Contacts",
-                subtitle = "Numbers residents can call",
-                onClick = { navController.safeNavigate("emergency_contacts") }
+            IconGridSection(
+                "Emergency",
+                listOf(
+                    HomeShortcut("Alerts", Icons.Filled.Sos, "emergency_alerts", openEmergencies),
+                    HomeShortcut("Contacts", Icons.Filled.Call, "emergency_contacts")
+                ),
+                open
             )
         }
     }
 }
 
+// Coloured header card at the top of the Staff and Security home pages, with the profile photo
 @Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
-        modifier = Modifier.padding(top = 8.dp)
-    )
-}
-
-// Coloured header card at the top of the Staff and Security home pages
-@Composable
-fun RoleGreeting(name: String, role: String) {
+fun RoleGreeting(userId: Int, role: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary)
     ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(
-                "Welcome,",
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onPrimary
+        Row(modifier = Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Welcome,", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onPrimary)
+                Text(
+                    ResidentData.getUser(userId)?.name ?: "",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onPrimary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(role, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimary)
+            }
+            UserAvatar(
+                userId,
+                size = 56.dp,
+                container = MaterialTheme.colorScheme.onPrimary,
+                content = MaterialTheme.colorScheme.primary
             )
-            Text(
-                name,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onPrimary
-            )
-            Spacer(Modifier.height(4.dp))
-            Text(role, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onPrimary)
         }
     }
 }
 
-// One tappable action row on the Staff / Security home pages, with an optional count badge
+// Red strip shown on the Staff / Security home while an emergency alert is still open
 @Composable
-fun HomeActionCard(
-    icon: ImageVector,
-    title: String,
-    subtitle: String,
-    onClick: () -> Unit,
-    badgeCount: Int = 0
-) {
+fun EmergencyBanner(openCount: Int, onClick: () -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
+            .clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.error,
+            contentColor = MaterialTheme.colorScheme.onError
+        )
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center
-            ) {
-                if (badgeCount > 0) {
-                    BadgedBox(badge = { Badge { Text("$badgeCount") } }) {
-                        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
-                } else {
-                    Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                }
-            }
-            Spacer(Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
-                Text(
-                    subtitle,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Sos, contentDescription = null)
+            Spacer(Modifier.width(12.dp))
+            Text(
+                "$openCount open emergency alert(s) -- respond now",
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
         }
+    }
+}
+
+// Profile photo in the top bar of the Staff / Security home -- opens their "Me" page
+@Composable
+fun MeButton(navController: NavHostController) {
+    IconButton(onClick = { navController.safeNavigate("account") }) {
+        UserAvatar(UserSession.currentUserId ?: -1, size = 30.dp)
     }
 }

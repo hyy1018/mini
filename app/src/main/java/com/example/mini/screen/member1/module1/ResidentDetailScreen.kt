@@ -83,7 +83,7 @@ fun ResidentDetailScreen(residentId: Int, navController: NavHostController) {
                         RegistrationStatusBadge(resident.registrationStatus)
                     }
                     Spacer(Modifier.size(8.dp))
-                    InfoRow("Username", user.username)
+                    InfoRow("User ID", user.username)
                     InfoRow("Type", resident.residentType)
                     InfoRow("IC Number", resident.icNo)
                     InfoRow("Email", user.email)
@@ -99,7 +99,6 @@ fun ResidentDetailScreen(residentId: Int, navController: NavHostController) {
                     Spacer(Modifier.size(8.dp))
                     InfoRow("Unit", household?.unitNo ?: "-")
                     InfoRow("Block", household?.blockName ?: "-")
-                    InfoRow("Address", household?.address ?: "-")
                     InfoRow(
                         "Members",
                         ResidentData.householdMembers(resident.householdId)

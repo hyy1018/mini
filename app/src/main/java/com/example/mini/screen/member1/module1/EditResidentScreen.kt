@@ -38,6 +38,7 @@ import com.example.mini.data.InputRules
 import com.example.mini.data.ResidentData
 import com.example.mini.data.UserSession
 import com.example.mini.model.UserRole
+import com.example.mini.screen.AvatarPicker
 import com.example.mini.screen.DropdownField
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -53,8 +54,10 @@ fun EditResidentScreen(residentId: Int, navController: NavHostController) {
     var phone by remember { mutableStateOf(user?.phoneNo ?: "") }
     var icNo by remember { mutableStateOf(resident?.icNo ?: "") }
     var residentType by remember { mutableStateOf(resident?.residentType ?: ResidentData.residentTypes.first()) }
-    var address by remember { mutableStateOf(household?.address ?: "") }
+    var photoPath by remember { mutableStateOf(user?.avatarPath) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
+    // only the resident changes their own photo -- staff editing a resident doesn't see the picker
+    val isOwnProfile = user != null && user.userId == UserSession.currentUserId
 
     Scaffold(
         topBar = {
@@ -79,6 +82,9 @@ fun EditResidentScreen(residentId: Int, navController: NavHostController) {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            if (isOwnProfile) {
+                AvatarPicker(userId = resident.userId, photoPath = photoPath, onPhotoChange = { photoPath = it })
+            }
             OutlinedTextField(
                 value = name,
                 onValueChange = { name = it.take(100) },
@@ -117,13 +123,6 @@ fun EditResidentScreen(residentId: Int, navController: NavHostController) {
                 onSelected = { residentType = it },
                 modifier = Modifier.fillMaxWidth()
             )
-            OutlinedTextField(
-                value = address,
-                onValueChange = { address = it.take(255) },
-                label = { Text("Household Address") },
-                minLines = 2,
-                modifier = Modifier.fillMaxWidth()
-            )
             // unit and block are fixed: moving unit means a new household, so management handles that
             Text(
                 "Unit: ${household?.blockName} · ${household?.unitNo} (contact management to change unit)",
@@ -140,7 +139,8 @@ fun EditResidentScreen(residentId: Int, navController: NavHostController) {
                     // ignore a second tap while the first save is already leaving this page
                     if (!navController.isCurrentScreenResumed()) return@Button
                     errorMessage = when {
-                        listOf(name, email, phone, icNo, address).any { it.isBlank() } -> "Please fill in all the details"
+                        listOf(name, email, phone, icNo).any { it.isBlank() } -> "Please fill in all the details"
+                        !InputRules.isValidName(name) -> InputRules.NAME_MESSAGE
                         !InputRules.isValidEmail(email) -> InputRules.EMAIL_MESSAGE
                         !InputRules.isValidPhone(phone) -> InputRules.PHONE_MESSAGE
                         !InputRules.isValidIc(icNo) -> InputRules.IC_MESSAGE
@@ -153,9 +153,9 @@ fun EditResidentScreen(residentId: Int, navController: NavHostController) {
                             email = email.trim(),
                             phoneNo = phone,
                             icNo = icNo,
-                            residentType = residentType,
-                            address = address.trim()
+                            residentType = residentType
                         )
+                        if (isOwnProfile) ResidentData.updateAvatar(resident.userId, photoPath)
                         navController.safePopBackStack()
                     }
                 },
